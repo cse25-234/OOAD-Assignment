@@ -25,11 +25,15 @@ public class AccountController {
     @FXML
     private Button depositButton;
 
+    @FXML
+    private Button withdrawButton;
+
     private final Map<String, AccountRecord> accountsByName = new HashMap<>();
 
     @FXML
     private void initialize() {
         depositButton.setOnAction(event -> handleDeposit());
+        withdrawButton.setOnAction(event -> handleWithdrawal());
 
         accountListView.getSelectionModel()
                 .selectedItemProperty()
@@ -64,6 +68,8 @@ public class AccountController {
 
             if (accountListView.getItems().isEmpty()) {
                 accountListView.getItems().add("No accounts found.");
+                balanceLabel.setText("Balance: BWP 0.00");
+                transactionListView.getItems().clear();
                 return;
             }
 
@@ -128,8 +134,7 @@ public class AccountController {
 
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Deposit");
-        dialog.setHeaderText(
-                "Deposit into " + account.accountNumber());
+        dialog.setHeaderText("Deposit into " + account.accountNumber());
         dialog.setContentText("Amount in BWP:");
 
         Optional<String> input = dialog.showAndWait();
@@ -155,6 +160,48 @@ public class AccountController {
         } catch (SQLException e) {
             showMessage(Alert.AlertType.ERROR, "Database error",
                     "The deposit could not be saved: " + e.getMessage());
+        }
+    }
+
+    private void handleWithdrawal() {
+        String selectedName =
+                accountListView.getSelectionModel().getSelectedItem();
+        AccountRecord account = accountsByName.get(selectedName);
+
+        if (account == null) {
+            showMessage(Alert.AlertType.WARNING, "Select an account",
+                    "Choose an account before making a withdrawal.");
+            return;
+        }
+
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Withdraw");
+        dialog.setHeaderText("Withdraw from " + account.accountNumber());
+        dialog.setContentText("Amount in BWP:");
+
+        Optional<String> input = dialog.showAndWait();
+
+        if (input.isEmpty()) {
+            return;
+        }
+
+        try {
+            BigDecimal amount = new BigDecimal(input.get().trim());
+            new AccountDAO().withdraw(account.accountNumber(), amount);
+
+            loadAccounts(account.accountNumber());
+
+            showMessage(Alert.AlertType.INFORMATION, "Withdrawal successful",
+                    "The withdrawal was saved.");
+        } catch (NumberFormatException e) {
+            showMessage(Alert.AlertType.ERROR, "Invalid amount",
+                    "Enter a number, for example 100 or 100.50.");
+        } catch (IllegalArgumentException e) {
+            showMessage(Alert.AlertType.ERROR, "Withdrawal not completed",
+                    e.getMessage());
+        } catch (SQLException e) {
+            showMessage(Alert.AlertType.ERROR, "Database error",
+                    "The withdrawal could not be saved: " + e.getMessage());
         }
     }
 
