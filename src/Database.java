@@ -19,6 +19,19 @@ public class Database {
             )
             """,
             """
+CREATE TABLE IF NOT EXISTS login_users (
+    username TEXT PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    role TEXT NOT NULL
+        CHECK (role IN ('CUSTOMER', 'ADMIN')),
+    customer_id TEXT,
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    locked INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+)
+""",
+            """
             CREATE TABLE IF NOT EXISTS accounts (
                 account_number TEXT PRIMARY KEY,
                 account_type TEXT NOT NULL

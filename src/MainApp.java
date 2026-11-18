@@ -6,6 +6,9 @@ import javafx.stage.Stage;
 public class MainApp extends Application {
     @Override
     public void start(Stage stage) throws Exception {
+         Database.initialize();
+         Main.main(new String[0]);
+new LoginDAO().ensureDemoUser();
         FXMLLoader loader = new FXMLLoader(
                 MainApp.class.getResource("/LoginView.fxml"));
 

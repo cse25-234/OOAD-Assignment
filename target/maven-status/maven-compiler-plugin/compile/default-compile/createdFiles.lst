@@ -5,9 +5,11 @@ InvestmentAccount.class
 Database.class
 TransactionRecord.class
 AccountDAO.class
+LoginDAO$AuthResult.class
 InterestBearing.class
 Main.class
 Customer.class
+LoginDAO.class
 TransactionDAO.class
 SavingsAccount.class
 AccountController.class
