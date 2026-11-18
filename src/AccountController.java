@@ -64,7 +64,7 @@ private Button logoutButton;
         accountListView.getItems().clear();
 
         try {
-            Customer customer = new CustomerDAO().findById("C001");
+            Customer customer = new CustomerDAO().findById(UserSession.getCustomerId());
 
             if (customer == null) {
                 accountListView.getItems().setAll("Customer C001 was not found.");
@@ -234,7 +234,7 @@ private Button logoutButton;
     }
 
     try {
-        Customer customer = new CustomerDAO().findById("C001");
+        Customer customer = new CustomerDAO().findById(UserSession.getCustomerId());
 
         if (customer == null) {
             showMessage(Alert.AlertType.ERROR, "Customer not found",
@@ -316,6 +316,7 @@ private String nextAccountNumber() throws SQLException {
     throw new SQLException("Could not generate an account number.");
 }
 private void handleLogout() {
+    UserSession.end();
     try {
         Parent loginView =
                 FXMLLoader.load(getClass().getResource("/LoginView.fxml"));

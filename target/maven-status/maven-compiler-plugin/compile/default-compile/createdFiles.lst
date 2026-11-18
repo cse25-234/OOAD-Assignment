@@ -2,6 +2,7 @@ CustomerDAO.class
 Transaction.class
 MainApp.class
 InvestmentAccount.class
+UserSession.class
 Database.class
 TransactionRecord.class
 AccountDAO.class

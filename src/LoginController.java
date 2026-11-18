@@ -86,8 +86,19 @@ public class LoginController {
                     getClass().getResource("/AccountView.fxml"));
 
             Stage stage = (Stage) usernameField.getScene().getWindow();
+            UserSession.start(result.customerId());
             stage.setScene(new Scene(accountView));
             stage.setTitle("Banking System - My Accounts");
+        UserSession.watch(stage.getScene(), () -> {
+            try {
+                Parent loginView = FXMLLoader.load(
+                        getClass().getResource("/LoginView.fxml"));
+                stage.setScene(new Scene(loginView));
+                stage.setTitle("Banking System - Login");
+            } catch (IOException | NullPointerException e) {
+                e.printStackTrace();
+            }
+        });
 
         } catch (SQLException e) {
             messageLabel.setText("Could not check the login.");
