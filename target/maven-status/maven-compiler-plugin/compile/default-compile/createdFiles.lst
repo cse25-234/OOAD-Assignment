@@ -1,5 +1,6 @@
 CustomerDAO.class
 Transaction.class
+MainApp.class
 InvestmentAccount.class
 Database.class
 TransactionRecord.class
@@ -12,3 +13,4 @@ SavingsAccount.class
 AccountRecord.class
 Account.class
 ChequeAccount.class
+LoginController.class
