@@ -8,7 +8,7 @@
 <?import javafx.scene.text.Font?>
 
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="LoginController">
    <children>
       <Label prefHeight="58.0" prefWidth="442.0" text="             BANK LOGIN">
          <font>
@@ -17,7 +17,7 @@
       </Label>
       <TextField fx:id="usernameField" promptText="Username" />
       <TextField fx:id="passwordField" promptText="Password" />
-      <Button fx:id="loginButton" mnemonicParsing="false" text="Log in" />
+      <Button fx:id="loginButton" mnemonicParsing="false" onAction="#handleLogin" text="Log in" />
       <SplashView />
       <Label fx:id="messageLabel" text="Future messages" />
    </children>
