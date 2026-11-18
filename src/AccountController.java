@@ -13,6 +13,11 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.ChoiceDialog;
+import java.io.IOException;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 
 public class AccountController {
 
@@ -34,6 +39,9 @@ public class AccountController {
     @FXML
 private Button openAccountButton;
 
+@FXML
+private Button logoutButton;
+
     private final Map<String, AccountRecord> accountsByName = new HashMap<>();
 
     @FXML
@@ -41,6 +49,7 @@ private Button openAccountButton;
         depositButton.setOnAction(event -> handleDeposit());
         withdrawButton.setOnAction(event -> handleWithdrawal());
         openAccountButton.setOnAction(event -> handleOpenAccount());
+        logoutButton.setOnAction(event -> handleLogout());
 
         accountListView.getSelectionModel()
                 .selectedItemProperty()
@@ -305,6 +314,18 @@ private String nextAccountNumber() throws SQLException {
     }
 
     throw new SQLException("Could not generate an account number.");
+}
+private void handleLogout() {
+    try {
+        Parent loginView =
+                FXMLLoader.load(getClass().getResource("/LoginView.fxml"));
+        Stage stage = (Stage) logoutButton.getScene().getWindow();
+        stage.setScene(new Scene(loginView));
+        stage.setTitle("Banking System - Login");
+    } catch (IOException | NullPointerException e) {
+        showMessage(Alert.AlertType.ERROR, "Logout error",
+                "Could not return to the login screen.");
+    }
 }
 
     private void showMessage(
