@@ -3,6 +3,8 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.math.RoundingMode;
+import java.util.List;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -10,6 +12,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.ChoiceDialog;
 
 public class AccountController {
 
@@ -28,12 +31,16 @@ public class AccountController {
     @FXML
     private Button withdrawButton;
 
+    @FXML
+private Button openAccountButton;
+
     private final Map<String, AccountRecord> accountsByName = new HashMap<>();
 
     @FXML
     private void initialize() {
         depositButton.setOnAction(event -> handleDeposit());
         withdrawButton.setOnAction(event -> handleWithdrawal());
+        openAccountButton.setOnAction(event -> handleOpenAccount());
 
         accountListView.getSelectionModel()
                 .selectedItemProperty()
@@ -204,6 +211,101 @@ public class AccountController {
                     "The withdrawal could not be saved: " + e.getMessage());
         }
     }
+   private void handleOpenAccount() {
+    ChoiceDialog<String> typeDialog =
+            new ChoiceDialog<>("Savings", List.of("Savings", "Investment", "Cheque"));
+    typeDialog.setTitle("Open Account");
+    typeDialog.setHeaderText("Choose an account type");
+    typeDialog.setContentText("Account type:");
+
+    Optional<String> choice = typeDialog.showAndWait();
+
+    if (choice.isEmpty()) {
+        return;
+    }
+
+    try {
+        Customer customer = new CustomerDAO().findById("C001");
+
+        if (customer == null) {
+            showMessage(Alert.AlertType.ERROR, "Customer not found",
+                    "Customer C001 could not be found.");
+            return;
+        }
+
+        String accountNumber = nextAccountNumber();
+        Account newAccount;
+
+        switch (choice.get()) {
+            case "Savings" ->
+                    newAccount = new SavingsAccount(
+                            accountNumber, "Main Branch", customer);
+
+            case "Investment" -> {
+                TextInputDialog depositDialog =
+                        new TextInputDialog("500.00");
+                depositDialog.setTitle("Investment Opening Deposit");
+                depositDialog.setHeaderText(
+                        "An Investment account needs at least BWP 500.00.");
+                depositDialog.setContentText("Opening deposit in BWP:");
+
+                Optional<String> depositInput =
+                        depositDialog.showAndWait();
+
+                if (depositInput.isEmpty()) {
+                    return;
+                }
+
+                BigDecimal openingDeposit;
+                try {
+                    openingDeposit = new BigDecimal(
+                            depositInput.get().trim())
+                            .setScale(2, RoundingMode.UNNECESSARY);
+                } catch (NumberFormatException | ArithmeticException e) {
+                    showMessage(Alert.AlertType.ERROR, "Invalid amount",
+                            "Enter a valid amount with no more than two decimal places.");
+                    return;
+                }
+
+                newAccount = new InvestmentAccount(
+                        accountNumber, "Main Branch", customer,
+                        openingDeposit);
+            }
+
+            case "Cheque" ->
+                    newAccount = new ChequeAccount(
+                            accountNumber, "Main Branch", customer);
+
+            default -> {
+                return;
+            }
+        }
+
+        new AccountDAO().save(newAccount);
+        new TransactionDAO().saveAll(newAccount);
+        loadAccounts(accountNumber);
+
+        showMessage(Alert.AlertType.INFORMATION, "Account opened",
+                "Account " + accountNumber + " was created.");
+    } catch (SQLException | IllegalArgumentException e) {
+        showMessage(Alert.AlertType.ERROR, "Could not open account",
+                e.getMessage());
+    }
+}
+
+private String nextAccountNumber() throws SQLException {
+    AccountDAO accountDAO = new AccountDAO();
+
+    for (int number = 1001; number < 1_000_000; number++) {
+        String candidate = "A" + number;
+
+        if (!accountDAO.exists(candidate)) {
+            return candidate;
+        }
+    }
+
+    throw new SQLException("Could not generate an account number.");
+}
 
     private void showMessage(
             Alert.AlertType type, String title, String message) {
