@@ -8,8 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TransactionDAO {
+
     public void saveAll(Account account) throws SQLException {
-        String sql = """
+        String deleteSql =
+                "DELETE FROM transactions WHERE account_number = ?";
+        String insertSql = """
                 INSERT INTO transactions (
                     account_number, type, amount, balance_after, date_time
                 )
@@ -19,19 +22,26 @@ public class TransactionDAO {
         try (Connection connection = Database.getConnection()) {
             connection.setAutoCommit(false);
 
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            try (PreparedStatement delete =
+                         connection.prepareStatement(deleteSql);
+                 PreparedStatement insert =
+                         connection.prepareStatement(insertSql)) {
+
+                delete.setString(1, account.getAccountNumber());
+                delete.executeUpdate();
+
                 for (Transaction transaction : account.getTransactions()) {
-                    statement.setString(1, account.getAccountNumber());
-                    statement.setString(2, transaction.getType());
-                    statement.setString(3, transaction.getAmount().toPlainString());
-                    statement.setString(4, transaction.getBalanceAfter().toPlainString());
-                    statement.setString(5, transaction.getDateTime().toString());
-                    statement.addBatch();
+                    insert.setString(1, account.getAccountNumber());
+                    insert.setString(2, transaction.getType());
+                    insert.setString(3, transaction.getAmount().toPlainString());
+                    insert.setString(
+                            4, transaction.getBalanceAfter().toPlainString());
+                    insert.setString(5, transaction.getDateTime().toString());
+                    insert.executeUpdate();
                 }
 
-                statement.executeBatch();
                 connection.commit();
-            } catch (SQLException e) {
+            } catch (SQLException | RuntimeException e) {
                 connection.rollback();
                 throw e;
             }
@@ -44,7 +54,7 @@ public class TransactionDAO {
                 SELECT type, amount, balance_after, date_time
                 FROM transactions
                 WHERE account_number = ?
-                ORDER BY transaction_id
+                ORDER BY date_time, transaction_id
                 """;
 
         List<TransactionRecord> transactions = new ArrayList<>();
@@ -60,7 +70,8 @@ public class TransactionDAO {
                             results.getString("type"),
                             new BigDecimal(results.getString("amount")),
                             new BigDecimal(results.getString("balance_after")),
-                            LocalDateTime.parse(results.getString("date_time"))));
+                            LocalDateTime.parse(
+                                    results.getString("date_time"))));
                 }
             }
         }

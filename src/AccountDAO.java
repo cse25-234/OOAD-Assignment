@@ -1,3 +1,5 @@
+import java.time.LocalDateTime;
+import java.math.RoundingMode;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -81,4 +83,75 @@ public class AccountDAO {
 
         return accounts;
     }
+    public void deposit(String accountNumber, BigDecimal amount)
+        throws SQLException {
+    if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        throw new IllegalArgumentException(
+                "Deposit amount must be greater than zero.");
+    }
+
+    try {
+        amount = amount.setScale(2, RoundingMode.UNNECESSARY);
+    } catch (ArithmeticException e) {
+        throw new IllegalArgumentException(
+                "Enter no more than two decimal places.");
+    }
+
+    String selectSql =
+            "SELECT balance FROM accounts WHERE account_number = ?";
+    String updateSql =
+            "UPDATE accounts SET balance = ? WHERE account_number = ?";
+    String insertSql = """
+            INSERT INTO transactions (
+                account_number, type, amount, balance_after, date_time
+            )
+            VALUES (?, 'DEPOSIT', ?, ?, ?)
+            """;
+
+    try (Connection connection = Database.getConnection()) {
+        connection.setAutoCommit(false);
+
+        try {
+            BigDecimal currentBalance;
+
+            try (PreparedStatement select =
+                         connection.prepareStatement(selectSql)) {
+                select.setString(1, accountNumber);
+
+                try (ResultSet results = select.executeQuery()) {
+                    if (!results.next()) {
+                        throw new IllegalArgumentException(
+                                "Account was not found.");
+                    }
+
+                    currentBalance = new BigDecimal(
+                            results.getString("balance"));
+                }
+            }
+
+            BigDecimal newBalance = currentBalance.add(amount);
+
+            try (PreparedStatement update =
+                         connection.prepareStatement(updateSql)) {
+                update.setString(1, newBalance.toPlainString());
+                update.setString(2, accountNumber);
+                update.executeUpdate();
+            }
+
+            try (PreparedStatement insert =
+                         connection.prepareStatement(insertSql)) {
+                insert.setString(1, accountNumber);
+                insert.setString(2, amount.toPlainString());
+                insert.setString(3, newBalance.toPlainString());
+                insert.setString(4, LocalDateTime.now().toString());
+                insert.executeUpdate();
+            }
+
+            connection.commit();
+        } catch (SQLException | RuntimeException e) {
+            connection.rollback();
+            throw e;
+        }
+    }
+}
 }
