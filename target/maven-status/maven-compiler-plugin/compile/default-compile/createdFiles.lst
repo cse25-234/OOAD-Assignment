@@ -10,6 +10,7 @@ Main.class
 Customer.class
 TransactionDAO.class
 SavingsAccount.class
+AccountController.class
 AccountRecord.class
 Account.class
 ChequeAccount.class
