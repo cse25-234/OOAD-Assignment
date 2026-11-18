@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Optional;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -8,6 +9,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.stage.Stage;
 
 public class LoginController {
@@ -45,6 +47,31 @@ public class LoginController {
                 messageLabel.setText(
                         "Incorrect login. Attempts remaining: "
                                 + result.attemptsRemaining());
+                return;
+            }
+
+            if ("ADMIN".equals(result.role())) {
+                TextInputDialog resetDialog = new TextInputDialog();
+                resetDialog.setTitle("Admin Login Reset");
+                resetDialog.setHeaderText("Reset a locked login");
+                resetDialog.setContentText("Username to unlock:");
+
+                Optional<String> usernameToReset =
+                        resetDialog.showAndWait();
+
+                if (usernameToReset.isPresent()) {
+                    String username = usernameToReset.get().trim();
+
+                    if (username.isBlank()) {
+                        messageLabel.setText(
+                                "Enter the username to reset.");
+                    } else {
+                        new LoginDAO().resetLock(username);
+                        messageLabel.setText(
+                                "Login reset. The user can try signing in again.");
+                    }
+                }
+
                 return;
             }
 

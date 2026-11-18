@@ -4,11 +4,15 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class MainApp extends Application {
+
     @Override
     public void start(Stage stage) throws Exception {
-         Database.initialize();
-         Main.main(new String[0]);
-new LoginDAO().ensureDemoUser();
+        Main.main(new String[0]);
+
+        LoginDAO loginDAO = new LoginDAO();
+        loginDAO.ensureDemoUser();
+        loginDAO.ensureDemoAdmin();
+
         FXMLLoader loader = new FXMLLoader(
                 MainApp.class.getResource("/LoginView.fxml"));
 

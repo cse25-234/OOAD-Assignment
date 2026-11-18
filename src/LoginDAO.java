@@ -56,6 +56,44 @@ public class LoginDAO {
         }
     }
 
+    public void ensureDemoAdmin() throws SQLException {
+        String findSql =
+                "SELECT 1 FROM login_users WHERE username = ?";
+
+        try (Connection connection = Database.getConnection();
+             PreparedStatement find = connection.prepareStatement(findSql)) {
+            find.setString(1, "ADMIN");
+
+            try (ResultSet results = find.executeQuery()) {
+                if (results.next()) {
+                    return;
+                }
+            }
+        }
+
+        byte[] salt = new byte[16];
+        new SecureRandom().nextBytes(salt);
+
+        String encodedSalt = Base64.getEncoder().encodeToString(salt);
+        String encodedHash = Base64.getEncoder().encodeToString(
+                hashPassword("Admin123!".toCharArray(), salt));
+
+        String insertSql = """
+                INSERT INTO login_users (
+                    username, password_hash, salt, role, customer_id
+                )
+                VALUES (?, ?, ?, 'ADMIN', NULL)
+                """;
+
+        try (Connection connection = Database.getConnection();
+             PreparedStatement insert = connection.prepareStatement(insertSql)) {
+            insert.setString(1, "ADMIN");
+            insert.setString(2, encodedHash);
+            insert.setString(3, encodedSalt);
+            insert.executeUpdate();
+        }
+    }
+
     public AuthResult authenticate(String username, String password)
             throws SQLException {
         String sql = """
