@@ -19,18 +19,17 @@ public class Database {
             )
             """,
             """
-CREATE TABLE IF NOT EXISTS login_users (
-    username TEXT PRIMARY KEY,
-    password_hash TEXT NOT NULL,
-    salt TEXT NOT NULL,
-    role TEXT NOT NULL
-        CHECK (role IN ('CUSTOMER', 'ADMIN')),
-    customer_id TEXT,
-    failed_attempts INTEGER NOT NULL DEFAULT 0,
-    locked INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
-)
-""",
+            CREATE TABLE IF NOT EXISTS login_users (
+                username TEXT PRIMARY KEY,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                role TEXT NOT NULL CHECK (role IN ('CUSTOMER', 'ADMIN')),
+                customer_id TEXT,
+                failed_attempts INTEGER NOT NULL DEFAULT 0,
+                locked INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+            )
+            """,
             """
             CREATE TABLE IF NOT EXISTS accounts (
                 account_number TEXT PRIMARY KEY,
@@ -40,8 +39,7 @@ CREATE TABLE IF NOT EXISTS login_users (
                 customer_id TEXT NOT NULL,
                 date_opened TEXT NOT NULL,
                 balance TEXT NOT NULL,
-                FOREIGN KEY (customer_id)
-                    REFERENCES customers(customer_id)
+                FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
             )
             """,
             """
@@ -84,6 +82,9 @@ CREATE TABLE IF NOT EXISTS login_users (
     }
 
     public static Connection getConnection() throws SQLException {
+        System.out.println("SQLite database path: "
+                + new java.io.File("banking.db").getAbsolutePath());
+
         Connection connection = DriverManager.getConnection(DATABASE_URL);
 
         try (Statement statement = connection.createStatement()) {

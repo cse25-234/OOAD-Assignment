@@ -56,15 +56,13 @@ public class LoginController {
                 resetDialog.setHeaderText("Reset a locked login");
                 resetDialog.setContentText("Username to unlock:");
 
-                Optional<String> usernameToReset =
-                        resetDialog.showAndWait();
+                Optional<String> usernameToReset = resetDialog.showAndWait();
 
                 if (usernameToReset.isPresent()) {
                     String username = usernameToReset.get().trim();
 
                     if (username.isBlank()) {
-                        messageLabel.setText(
-                                "Enter the username to reset.");
+                        messageLabel.setText("Enter the username to reset.");
                     } else {
                         new LoginDAO().resetLock(username);
                         messageLabel.setText(
@@ -82,23 +80,27 @@ public class LoginController {
                 return;
             }
 
+            Stage stage = (Stage) usernameField.getScene().getWindow();
+
+            // Start the session before loading AccountView.fxml.
+            UserSession.start(result.customerId());
+
             Parent accountView = FXMLLoader.load(
                     getClass().getResource("/AccountView.fxml"));
 
-            Stage stage = (Stage) usernameField.getScene().getWindow();
-            UserSession.start(result.customerId());
             stage.setScene(new Scene(accountView));
             stage.setTitle("Banking System - My Accounts");
-        UserSession.watch(stage.getScene(), () -> {
-            try {
-                Parent loginView = FXMLLoader.load(
-                        getClass().getResource("/LoginView.fxml"));
-                stage.setScene(new Scene(loginView));
-                stage.setTitle("Banking System - Login");
-            } catch (IOException | NullPointerException e) {
-                e.printStackTrace();
-            }
-        });
+
+            UserSession.watch(stage.getScene(), () -> {
+                try {
+                    Parent loginView = FXMLLoader.load(
+                            getClass().getResource("/LoginView.fxml"));
+                    stage.setScene(new Scene(loginView));
+                    stage.setTitle("Banking System - Login");
+                } catch (IOException | NullPointerException e) {
+                    e.printStackTrace();
+                }
+            });
 
         } catch (SQLException e) {
             messageLabel.setText("Could not check the login.");

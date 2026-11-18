@@ -1,22 +1,22 @@
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.math.RoundingMode;
-import java.util.List;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextInputDialog;
-import javafx.scene.control.ChoiceDialog;
-import java.io.IOException;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextInputDialog;
 import javafx.stage.Stage;
 
 public class AccountController {
@@ -37,10 +37,10 @@ public class AccountController {
     private Button withdrawButton;
 
     @FXML
-private Button openAccountButton;
+    private Button openAccountButton;
 
-@FXML
-private Button logoutButton;
+    @FXML
+    private Button logoutButton;
 
     private final Map<String, AccountRecord> accountsByName = new HashMap<>();
 
@@ -64,19 +64,25 @@ private Button logoutButton;
         accountListView.getItems().clear();
 
         try {
-            Customer customer = new CustomerDAO().findById(UserSession.getCustomerId());
+            String id = UserSession.getCustomerId();
+            System.out.println("Account screen customer ID: [" + id + "]");
+
+            Customer customer = new CustomerDAO().findById(id);
 
             if (customer == null) {
-                accountListView.getItems().setAll("Customer C001 was not found.");
+                accountListView.getItems().setAll(
+                        "Customer " + id + " was not found.");
                 balanceLabel.setText("Balance: BWP 0.00");
                 transactionListView.getItems().clear();
                 return;
             }
 
             for (AccountRecord account :
-                    new AccountDAO().findAllForCustomer(customer.getCustomerId())) {
+                    new AccountDAO().findAllForCustomer(
+                            customer.getCustomerId())) {
                 String displayName =
-                        account.accountNumber() + " - " + account.accountType();
+                        account.accountNumber() + " - "
+                                + account.accountType();
 
                 accountsByName.put(displayName, account);
                 accountListView.getItems().add(displayName);
@@ -90,8 +96,8 @@ private Button logoutButton;
             }
 
             String nameToSelect = null;
-            for (Map.Entry<String, AccountRecord> entry
-                    : accountsByName.entrySet()) {
+            for (Map.Entry<String, AccountRecord> entry :
+                    accountsByName.entrySet()) {
                 if (entry.getValue().accountNumber()
                         .equals(accountNumberToSelect)) {
                     nameToSelect = entry.getKey();
@@ -104,6 +110,7 @@ private Button logoutButton;
             } else {
                 accountListView.getSelectionModel().select(nameToSelect);
             }
+
         } catch (SQLException e) {
             accountListView.getItems().setAll("Could not load accounts.");
             transactionListView.getItems().setAll(e.getMessage());
@@ -117,7 +124,8 @@ private Button logoutButton;
             return;
         }
 
-        balanceLabel.setText("Balance: BWP " + account.balance().toPlainString());
+        balanceLabel.setText(
+                "Balance: BWP " + account.balance().toPlainString());
         transactionListView.getItems().clear();
 
         try {
@@ -127,7 +135,8 @@ private Button logoutButton;
                 transactionListView.getItems().add(
                         transaction.dateTime()
                                 + " | " + transaction.type()
-                                + " | BWP " + transaction.amount().toPlainString()
+                                + " | BWP "
+                                + transaction.amount().toPlainString()
                                 + " | Balance: BWP "
                                 + transaction.balanceAfter().toPlainString());
             }
@@ -220,114 +229,129 @@ private Button logoutButton;
                     "The withdrawal could not be saved: " + e.getMessage());
         }
     }
-   private void handleOpenAccount() {
-    ChoiceDialog<String> typeDialog =
-            new ChoiceDialog<>("Savings", List.of("Savings", "Investment", "Cheque"));
-    typeDialog.setTitle("Open Account");
-    typeDialog.setHeaderText("Choose an account type");
-    typeDialog.setContentText("Account type:");
 
-    Optional<String> choice = typeDialog.showAndWait();
+    private void handleOpenAccount() {
+        ChoiceDialog<String> typeDialog =
+                new ChoiceDialog<>(
+                        "Savings",
+                        List.of("Savings", "Investment", "Cheque"));
 
-    if (choice.isEmpty()) {
-        return;
-    }
+        typeDialog.setTitle("Open Account");
+        typeDialog.setHeaderText("Choose an account type");
+        typeDialog.setContentText("Account type:");
 
-    try {
-        Customer customer = new CustomerDAO().findById(UserSession.getCustomerId());
+        Optional<String> choice = typeDialog.showAndWait();
 
-        if (customer == null) {
-            showMessage(Alert.AlertType.ERROR, "Customer not found",
-                    "Customer C001 could not be found.");
+        if (choice.isEmpty()) {
             return;
         }
 
-        String accountNumber = nextAccountNumber();
-        Account newAccount;
+        try {
+            Customer customer = new CustomerDAO()
+                    .findById(UserSession.getCustomerId());
 
-        switch (choice.get()) {
-            case "Savings" ->
-                    newAccount = new SavingsAccount(
-                            accountNumber, "Main Branch", customer);
-
-            case "Investment" -> {
-                TextInputDialog depositDialog =
-                        new TextInputDialog("500.00");
-                depositDialog.setTitle("Investment Opening Deposit");
-                depositDialog.setHeaderText(
-                        "An Investment account needs at least BWP 500.00.");
-                depositDialog.setContentText("Opening deposit in BWP:");
-
-                Optional<String> depositInput =
-                        depositDialog.showAndWait();
-
-                if (depositInput.isEmpty()) {
-                    return;
-                }
-
-                BigDecimal openingDeposit;
-                try {
-                    openingDeposit = new BigDecimal(
-                            depositInput.get().trim())
-                            .setScale(2, RoundingMode.UNNECESSARY);
-                } catch (NumberFormatException | ArithmeticException e) {
-                    showMessage(Alert.AlertType.ERROR, "Invalid amount",
-                            "Enter a valid amount with no more than two decimal places.");
-                    return;
-                }
-
-                newAccount = new InvestmentAccount(
-                        accountNumber, "Main Branch", customer,
-                        openingDeposit);
-            }
-
-            case "Cheque" ->
-                    newAccount = new ChequeAccount(
-                            accountNumber, "Main Branch", customer);
-
-            default -> {
+            if (customer == null) {
+                showMessage(Alert.AlertType.ERROR, "Customer not found",
+                        "Customer " + UserSession.getCustomerId()
+                                + " could not be found.");
                 return;
             }
+
+            String accountNumber = nextAccountNumber();
+            Account newAccount;
+
+            switch (choice.get()) {
+                case "Savings" ->
+                        newAccount = new SavingsAccount(
+                                accountNumber, "Main Branch", customer);
+
+                case "Investment" -> {
+                    TextInputDialog depositDialog =
+                            new TextInputDialog("500.00");
+                    depositDialog.setTitle("Investment Opening Deposit");
+                    depositDialog.setHeaderText(
+                            "An Investment account needs at least BWP 500.00.");
+                    depositDialog.setContentText("Opening deposit in BWP:");
+
+                    Optional<String> depositInput =
+                            depositDialog.showAndWait();
+
+                    if (depositInput.isEmpty()) {
+                        return;
+                    }
+
+                    BigDecimal openingDeposit;
+                    try {
+                        openingDeposit = new BigDecimal(
+                                depositInput.get().trim())
+                                .setScale(2, RoundingMode.UNNECESSARY);
+                    } catch (NumberFormatException
+                             | ArithmeticException e) {
+                        showMessage(Alert.AlertType.ERROR, "Invalid amount",
+                                "Enter a valid amount with no more than "
+                                        + "two decimal places.");
+                        return;
+                    }
+
+                    newAccount = new InvestmentAccount(
+                            accountNumber, "Main Branch", customer,
+                            openingDeposit);
+                }
+
+                case "Cheque" ->
+                        newAccount = new ChequeAccount(
+                                accountNumber, "Main Branch", customer);
+
+                default -> {
+                    return;
+                }
+            }
+
+            new AccountDAO().save(newAccount);
+            new TransactionDAO().saveAll(newAccount);
+            loadAccounts(accountNumber);
+
+            showMessage(Alert.AlertType.INFORMATION, "Account opened",
+                    "Account " + accountNumber + " was created.");
+
+        } catch (SQLException | IllegalArgumentException e) {
+            showMessage(Alert.AlertType.ERROR, "Could not open account",
+                    e.getMessage());
+        }
+    }
+
+    private String nextAccountNumber() throws SQLException {
+        AccountDAO accountDAO = new AccountDAO();
+
+        for (int number = 1001; number < 1_000_000; number++) {
+            String candidate = "A" + number;
+
+            if (!accountDAO.exists(candidate)) {
+                return candidate;
+            }
         }
 
-        new AccountDAO().save(newAccount);
-        new TransactionDAO().saveAll(newAccount);
-        loadAccounts(accountNumber);
-
-        showMessage(Alert.AlertType.INFORMATION, "Account opened",
-                "Account " + accountNumber + " was created.");
-    } catch (SQLException | IllegalArgumentException e) {
-        showMessage(Alert.AlertType.ERROR, "Could not open account",
-                e.getMessage());
+        throw new SQLException("Could not generate an account number.");
     }
-}
 
-private String nextAccountNumber() throws SQLException {
-    AccountDAO accountDAO = new AccountDAO();
+    private void handleLogout() {
+        UserSession.end();
 
-    for (int number = 1001; number < 1_000_000; number++) {
-        String candidate = "A" + number;
+        try {
+            Parent loginView =
+                    FXMLLoader.load(
+                            getClass().getResource("/LoginView.fxml"));
+            Stage stage =
+                    (Stage) logoutButton.getScene().getWindow();
 
-        if (!accountDAO.exists(candidate)) {
-            return candidate;
+            stage.setScene(new Scene(loginView));
+            stage.setTitle("Banking System - Login");
+
+        } catch (IOException | NullPointerException e) {
+            showMessage(Alert.AlertType.ERROR, "Logout error",
+                    "Could not return to the login screen.");
         }
     }
-
-    throw new SQLException("Could not generate an account number.");
-}
-private void handleLogout() {
-    UserSession.end();
-    try {
-        Parent loginView =
-                FXMLLoader.load(getClass().getResource("/LoginView.fxml"));
-        Stage stage = (Stage) logoutButton.getScene().getWindow();
-        stage.setScene(new Scene(loginView));
-        stage.setTitle("Banking System - Login");
-    } catch (IOException | NullPointerException e) {
-        showMessage(Alert.AlertType.ERROR, "Logout error",
-                "Could not return to the login screen.");
-    }
-}
 
     private void showMessage(
             Alert.AlertType type, String title, String message) {
